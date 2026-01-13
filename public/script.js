@@ -1,89 +1,69 @@
-// ====== 模型列表（按公司分组）======
-const MODEL_LIST = [
-  { name: "GPT-5.2", company: "openai" },
-  { name: "GPT-5.1", company: "openai" },
-  { name: "GPT-5.1 Thinking", company: "openai" },
-  { name: "GPT-5.2 Codex", company: "openai" },
-  { name: "GPT-5.2 Chat Latest", company: "openai" },
-  { name: "Claude Opus 4.5", company: "anthropic" },
-  { name: "Gemini 3 Pro Preview", company: "google" },
-  { name: "Gemini 3 Pro Preview 11-2025", company: "google" },
-  { name: "Gemini 3 Pro Preview Thinking", company: "google" },
-  { name: "Grok-4.1", company: "xai" }
-];
+// 设置正确的密码
+const CORRECT_PASSWORD = "123"; 
 
-// ====== DOM 元素 ======
-const loginBox = document.getElementById("loginBox");
-const mainBox = document.getElementById("mainBox");
-const passwordInput = document.getElementById("passwordInput");
-const loginBtn = document.getElementById("loginBtn");
-const loginTip = document.getElementById("loginTip");
+// 获取页面元素
+const loginContainer = document.getElementById('login-container');
+const chatContainer = document.getElementById('chat-container');
+const passwordInput = document.getElementById('passwordInput');
+const loginBtn = document.getElementById('loginBtn');
+const errorMsg = document.getElementById('errorMsg');
+const sendBtn = document.getElementById('sendBtn');
+const userInput = document.getElementById('userInput');
+const chatBox = document.getElementById('chat-box');
 
-// ... 其他代码不变
-
-// ====== 初始化（确保在 DOM 加载完成后执行）======
-document.addEventListener('DOMContentLoaded', function() {
-  init();
+// 1. 登录功能
+loginBtn.addEventListener('click', function() {
+    const inputVal = passwordInput.value;
+    
+    if (inputVal === CORRECT_PASSWORD) {
+        // 密码正确：隐藏登录页，显示聊天页
+        loginContainer.classList.add('hidden');
+        chatContainer.classList.remove('hidden');
+    } else {
+        // 密码错误
+        errorMsg.textContent = "密码错误，请重试";
+        passwordInput.value = ""; // 清空输入框
+    }
 });
 
-function init() {
-  loadChatSessions();
-  initModels();
-  loadLoginState();
-  bindEvents();
+// 支持回车键登录
+passwordInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        loginBtn.click();
+    }
+});
+
+// 2. 发送消息功能
+function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text) return; // 如果是空的就不发送
+
+    // 添加用户消息
+    addMessage(text, 'user-message');
+    userInput.value = ""; // 清空输入框
+
+    // 模拟 AI 回复 (延迟 1 秒)
+    setTimeout(() => {
+        addMessage("收到！但我目前只是一个前端演示界面，还没有接入真的 AI 大脑哦。", 'ai-message');
+    }, 1000);
 }
 
-// ====== 登录处理 ======
-async function handleLogin() {
-  loginTip.textContent = "";
-  const pwd = passwordInput.value.trim();
-  
-  if (!pwd) {
-    loginTip.textContent = "请输入密码";
-    passwordInput.focus();
-    return;
-  }
+// 绑定发送按钮
+sendBtn.addEventListener('click', sendMessage);
 
-  loginBtn.disabled = true;
-  loginBtn.textContent = "验证中...";
-
-  try {
-    const resp = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "check_password",
-        password: pwd
-      })
-    });
-
-    const data = await resp.json();
-
-    if (resp.ok && data.ok) {
-      localStorage.setItem("AUTH_OK", "1");
-      loginBox.classList.add("hidden");
-      mainBox.classList.remove("hidden");
-      
-      // 创建或加载对话
-      if (Object.keys(chatSessions).length === 0) {
-        createNewChat();
-      } else {
-        const lastChatId = Object.keys(chatSessions).sort((a, b) => 
-          chatSessions[b].timestamp - chatSessions[a].timestamp
-        )[0];
-        loadChat(lastChatId);
-      }
-      
-      renderHistory();
-    } else {
-      loginTip.textContent = data.error || "密码错误";
-      passwordInput.value = "";
-      passwordInput.focus();
+// 支持回车键发送
+userInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
     }
-  } catch (e) {
-    loginTip.textContent = "网络错误：" + String(e);
-  } finally {
-    loginBtn.disabled = false;
-    loginBtn.textContent = "进入";
-  }
+});
+
+// 工具函数：在界面上添加消息气泡
+function addMessage(text, className) {
+    const div = document.createElement('div');
+    div.classList.add('message', className);
+    div.textContent = text;
+    chatBox.appendChild(div);
+    // 自动滚动到底部
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
