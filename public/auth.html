@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - AI 对话助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 400px;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .warning-message {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .warning-message.show {
+            display: block;
+        }
+
+        .captcha-container {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .captcha-container.show {
+            display: block;
+        }
+
+        .captcha-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .captcha-display {
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            color: #667eea;
+            user-select: none;
+            text-decoration: line-through;
+            font-style: italic;
+        }
+
+        .refresh-captcha {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .refresh-captcha:hover {
+            background: #5a6268;
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+        }
+
+        button[type="submit"]:active {
+            transform: translateY(0);
+        }
+
+        button[type="submit"]:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .lockout-timer {
+            text-align: center;
+            color: #dc3545;
+            font-weight: bold;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .lockout-timer.show {
+            display: block;
+        }
+
+        .attempts-info {
+            text-align: center;
+            color: #6c757d;
+            font-size: 13px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>🔐 安全登录</h1>
+        
+        <div class="warning-message" id="warningMessage"></div>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="password">访问密码</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    placeholder="请输入访问密码"
+                    autocomplete="off"
+                    required
+                >
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <div class="captcha-container" id="captchaContainer">
+                <label>验证码</label>
+                <div class="captcha-box">
+                    <div class="captcha-display" id="captchaDisplay"></div>
+                    <button type="button" class="refresh-captcha" onclick="refreshCaptcha()">
+                        🔄 刷新
+                    </button>
+                </div>
+                <input 
+                    type="text" 
+                    id="captchaInput" 
+                    placeholder="请输入验证码"
+                    autocomplete="off"
+                    maxlength="4"
+                >
+            </div>
+
+            <button type="submit" id="submitBtn">登录</button>
+            
+            <div class="lockout-timer" id="lockoutTimer"></div>
+            <div class="attempts-info" id="attemptsInfo"></div>
+        </form>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>
