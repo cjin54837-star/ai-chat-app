@@ -1,70 +1,39 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI 对话</title>
-  <link rel="stylesheet" href="style.css"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 多模型对话</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- 登录界面 -->
-  <div id="loginBox" class="login-container">
-    <div class="login-card">
-      <h1>🤖 AI 多模型对话</h1>
-      <h2>输入访问密码</h2>
-      <input id="passwordInput" type="password" placeholder="访问密码" autocomplete="current-password"/>
-      <button id="loginBtn">进入</button>
-      <p id="loginTip" class="tip"></p>
-    </div>
-  </div>
 
-  <!-- 主界面（登录后显示）-->
-  <div id="mainBox" class="main-layout hidden">
-    <!-- 左侧边栏 -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <h2>📝 历史记录</h2>
-        <button id="newChatBtn" class="new-chat-btn">+ 新对话</button>
-      </div>
-      
-      <div id="historyList" class="history-list">
-        <!-- 历史记录将在这里动态生成 -->
-      </div>
-      
-      <div class="sidebar-footer">
-        <button id="logoutBtn" class="logout-btn">退出登录</button>
-      </div>
-    </aside>
-
-    <!-- 右侧对话区域 -->
-    <main class="chat-area">
-      <div class="chat-header">
-        <div class="model-selector">
-          <label>公司：</label>
-          <select id="companySelect">
-            <option value="all">全部模型</option>
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-            <option value="google">Google</option>
-            <option value="xai">xAI</option>
-          </select>
-          
-          <label>模型：</label>
-          <select id="modelSelect"></select>
-          
-          <button id="clearBtn" class="clear-btn">清空对话</button>
+    <!-- 登录界面 -->
+    <div id="login-container" class="container">
+        <div class="login-box">
+            <h1>😈 AI 多模型对话</h1>
+            <p>输入访问密码</p>
+            <input type="password" id="passwordInput" placeholder="访问密码" autocomplete="off">
+            <button id="loginBtn">进入</button>
+            <p id="errorMsg" class="error-msg"></p>
         </div>
-      </div>
+    </div>
 
-      <div id="messages" class="messages"></div>
+    <!-- 聊天界面 (默认隐藏) -->
+    <div id="chat-container" class="container hidden">
+        <div class="chat-header">
+            <h2>AI 助手</h2>
+        </div>
+        <div id="chat-box" class="chat-box">
+            <!-- 消息会显示在这里 -->
+            <div class="message ai-message">你好！我是你的 AI 助手，请输入密码验证通过后的第一句话。</div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="输入消息...">
+            <button id="sendBtn">发送</button>
+        </div>
+    </div>
 
-      <div class="composer">
-        <textarea id="userInput" placeholder="输入你的问题，回车发送（Shift+回车换行）"></textarea>
-        <button id="sendBtn">发送</button>
-      </div>
-    </main>
-  </div>
-
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
