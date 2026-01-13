@@ -1,15 +1,19 @@
 // ====== 模型配置映射 ======
 const MODEL_MAP = {
-  // 原逆向分组模型（用 YUNWU_API_KEY）
+  // OpenAI 模型（用 YUNWU_API_KEY - 逆向分组）
   "GPT-5.2": { type: "chat", model: "gpt-5.2", tokenGroup: "reverse" },
   "GPT-5.1": { type: "chat", model: "gpt-5.1", tokenGroup: "reverse" },
   "GPT-5.1 Thinking": { type: "chat", model: "gpt-5.1-thinking-all", tokenGroup: "reverse" },
   "GPT-5.2 Codex": { type: "chat", model: "gpt-5-codex", tokenGroup: "reverse" },
   "GPT-5.2 Chat Latest": { type: "chat", model: "gpt-5.2-chat-latest", tokenGroup: "reverse" },
+  
+  // Anthropic 模型（用 YUNWU_API_KEY - 逆向分组）
   "Claude Opus 4.5": { type: "chat", model: "claude-opus-4-5-20251101", tokenGroup: "reverse" },
+  
+  // xAI 模型（用 YUNWU_API_KEY - 逆向分组）
   "Grok-4.1": { type: "chat", model: "grok-4.1", tokenGroup: "reverse" },
 
-  // 新增 Gemini 3.0 模型（用 YUNWU_GEMINI_PROMO_KEY → YUNWU_GEMINI_PREMIUM_KEY）
+  // Google Gemini 3.0 模型（用专用 token）
   "Gemini 3 Pro Preview": { type: "chat", model: "gemini-3-pro-preview", tokenGroup: "gemini" },
   "Gemini 3 Pro Preview 11-2025": { type: "chat", model: "gemini-3-pro-preview-11-2025", tokenGroup: "gemini" },
   "Gemini 3 Pro Preview Thinking": { type: "chat", model: "gemini-3-pro-preview-thinking", tokenGroup: "gemini" }
@@ -21,9 +25,9 @@ export default async function handler(req, res) {
   }
 
   // ====== 读取环境变量 ======
-  const reverseKey = process.env.YUNWU_API_KEY;              // 逆向分组
-  const geminiPromoKey = process.env.YUNWU_GEMINI_PROMO_KEY; // 限时特价
-  const geminiPremiumKey = process.env.YUNWU_GEMINI_PREMIUM_KEY; // 优质gemini
+  const reverseKey = process.env.YUNWU_API_KEY;
+  const geminiPromoKey = process.env.YUNWU_GEMINI_PROMO_KEY;
+  const geminiPremiumKey = process.env.YUNWU_GEMINI_PREMIUM_KEY;
   const accessPassword = process.env.ACCESS_PASSWORD || "";
 
   if (!reverseKey) {
@@ -67,23 +71,21 @@ export default async function handler(req, res) {
     // ====== 根据 tokenGroup 选择 Token 列表 ======
     let tokenList = [];
     if (tokenGroup === "gemini") {
-      // Gemini 3.0：优先限时特价，失败时用优质gemini
       if (geminiPromoKey) tokenList.push({ key: geminiPromoKey, name: "限时特价" });
       if (geminiPremiumKey) tokenList.push({ key: geminiPremiumKey, name: "优质gemini" });
       
       if (tokenList.length === 0) {
         return res.status(500).json({ 
           ok: false, 
-          error: "Missing Gemini tokens (YUNWU_GEMINI_PROMO_KEY or YUNWU_GEMINI_PREMIUM_KEY)" 
+          error: "Missing Gemini tokens" 
         });
       }
     } else {
-      // 其他模型：用逆向分组
       tokenList.push({ key: reverseKey, name: "逆向" });
     }
 
-    // ====== 自动重试逻辑（遍历 token 列表）======
-    const MAX_RETRIES_PER_TOKEN = 2; // 每个 token 重试 2 次
+    // ====== 自动重试逻辑 ======
+    const MAX_RETRIES_PER_TOKEN = 2;
     let lastError = "";
     let tokenUsed = "";
 
@@ -108,18 +110,18 @@ export default async function handler(req, res) {
 
           const data = await r.json();
 
-          // 🔴 特殊处理 429 频率限制
+          // 特殊处理 429
           if (r.status === 429) {
             lastError = "429 Too Many Requests";
-            console.log(`⚠️ [${tokenName}] 第 ${attempt} 次请求遇到 429，尝试下一个 token...`);
-            break; // 跳到下一个 token
+            console.log(`⚠️ [${tokenName}] 遇到 429，尝试下一个 token...`);
+            break;
           }
 
-          // 🔴 特殊处理 Invalid token
+          // 特殊处理 Invalid token
           if (data?.error?.message?.includes("Invalid token")) {
             lastError = `Invalid token (${tokenName})`;
-            console.log(`❌ [${tokenName}] Token 无效，尝试下一个 token...`);
-            break; // 跳到下一个 token
+            console.log(`❌ [${tokenName}] Token 无效`);
+            break;
           }
 
           const text = data?.choices?.[0]?.message?.content ?? "";
@@ -142,24 +144,21 @@ export default async function handler(req, res) {
             lastError.includes("upstream");
 
           if (!isRetryable) {
-            console.log(`❌ [${tokenName}] 不可重试错误: ${lastError}`);
-            break; // 跳到下一个 token
+            console.log(`❌ [${tokenName}] 不可重试: ${lastError}`);
+            break;
           }
 
           if (attempt < MAX_RETRIES_PER_TOKEN) {
             const delay = Math.pow(2, attempt) * 1000;
-            console.log(`⏳ [${tokenName}] 第 ${attempt} 次失败，等待 ${delay}ms 后重试...`);
             await sleep(delay);
           }
 
         } catch (e) {
           lastError = String(e);
-          console.error(`❌ [${tokenName}] 请求异常: ${lastError}`);
         }
       }
     }
 
-    // ====== 所有 token 都失败了 ======
     return res.status(503).json({
       ok: false,
       error: `所有渠道均失败，请稍后再试`,
